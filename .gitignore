@@ -12,4 +12,4 @@
 .env.test.local
 .env.production.local
 
-packages-lock.json
+package-lock.json
