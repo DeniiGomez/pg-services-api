@@ -88,8 +88,8 @@ const updateEmergency = async(req, res) => {
     if(!errors.isEmpty()){
       return res.status(500).send({ errors: listErrors })
     } else {
+
       await Emergency.update({ name, description, }, { where: { id }})
-      
       res.status(200).send({ message: 'Emergencia editada con exito', })
     }
   } catch(err) {
