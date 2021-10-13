@@ -19,5 +19,8 @@ module.exports = {
     "database": process.env.DB_DATABASE || "test_login",
     "host": process.env.DB_HOST,
     "dialect": process.env.DB_CONNECTION || "mysql" || "postgres",
+    "dialectOptions": {
+      "ssl": true
+    }
   }
 }
