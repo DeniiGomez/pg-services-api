@@ -40,7 +40,7 @@ ManagementAlert.belongsTo(Status, { foreignKey: 'idStatus'});
 
 (async () => {
   try {
-    await sequelize.sync({ force: true }) 
+    await sequelize.sync({ force: false }) 
     console.log('Connection successfull to DB')
   } catch (err) {
     console.log(err.message)
