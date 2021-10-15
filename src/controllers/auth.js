@@ -1,4 +1,4 @@
-const { User, Rol, UserRol, Emergency, insertEmergencies }  = require('../database/connection')
+const { User, Rol, UserRol, Emergency, insertEmergencies, StatusActivity, StatusActivityRol }  = require('../database/connection')
 const createToken = require('../services/auth')
 const sendMail = require('../services/email')
 const bcrypt = require('bcryptjs')
@@ -11,6 +11,17 @@ const users = async (req, res) => {
   res.status(200).send(users)
 }
 
+const updatedUser = async (req, res) => {
+  try {
+    const id = req.params.idUser
+    const body = req.body
+    await User.update(body, { where: { id }})
+    res.status(200).send({ message: 'Datos actualizados'})
+  } catch (error) {
+    res.status(500).send({ message: error.message })
+  }
+}
+
 const login = async (req, res) => {
   try {
   
@@ -20,7 +31,7 @@ const login = async (req, res) => {
       check('email').isEmail().normalizeEmail().withMessage('El email debe ser valido').escape(),
       check('password').not().isEmpty().withMessage('La contrasena es obligatoria').escape(),
     ]
-  
+    
     await Promise.all(rules.map(validation => validation.run(req)))
 
     const errors = validationResult(req)
@@ -30,7 +41,9 @@ const login = async (req, res) => {
     if(!errors.isEmpty()) return res.status(500).send({ errors: listErrors })
 
     //const user =  await User.findOne({ where: { email } })
-    const user =  await UserRol.findOne({ include: [{ model: User, where : { email } }, { model: Rol}] })
+    const user =  await UserRol.findOne({ include: [{ model: User, where : { email } }, { model: Rol }] })
+    //const statusActivity = await StatusActivity.findAll({ include: { model: Rol }})
+    //console.log(user.rol)
     //console.log(user)
 
     if(!user) {
@@ -56,8 +69,12 @@ const login = async (req, res) => {
 
     res.status(200).send({
       id: user.id,
+      avatar: `https://ui-avatars.com/api/?name=${user.user.name}+${user.user.surname}&background=random`,
       name: user.user.name,
+      surname: user.user.surname,
+      fullName: `${user.user.name}${user.user.secondName ? " "+user.user.secondName : "" } ${user.user.surname}${user.user.secondSurname ? " "+user.user.secondSurname : ""}`,
       email: user.user.email,
+      numberPhone: user.user.numberPhone,
       rol: {
         id: user.rol.id,
         name: user.rol.name,
@@ -77,10 +94,12 @@ const register = async (req, res) => {
     const body = req.body
 
     const rules = [
-      check('name').not().isEmpty().withMessage("El nombre es obligatorio").escape(),
-      check('email').isEmail().normalizeEmail().withMessage('El email deb ser valido').escape(),
+      check('name').not().isEmpty().withMessage("El campo nombres es obligatorio").escape(),
+      check('surname').not().isEmpty().withMessage("El campo apellidos es obligatorio").escape(),
+      check('numberPhone').isInt().not().isEmpty().withMessage("El campo numero de telefono es obligatorio").escape(),
+      check('email').isEmail().normalizeEmail().withMessage('El email debe ser valido').escape(),
       check('password').not().isEmpty().withMessage('La contrasena es obligatoria').escape(),
-      check('idRol').not().isEmpty().withMessage('El rol es obligatorio')
+      check('idRol').not().isEmpty().withMessage('El rol es obligatorio').escape(),
     ]
 
     await Promise.all(rules.map(validation => validation.run(req)))
@@ -97,7 +116,7 @@ const register = async (req, res) => {
       const user =  await User.create(body)
       await UserRol.create({ idRol: body.idRol, idUser: user.id })
       //const token = createToken(user)
-      const mail = await sendMail(user.name, user.email, code)
+      const mail = await sendMail(body.name, body.email, code)
       console.log(mail)
       res.status(200).send({ message: 'Usuario registrado, por favor revisa tu email para activar la cuenta' })
     }
@@ -110,10 +129,17 @@ const register = async (req, res) => {
 const confirmMail = async (req, res) => {
   try {
     const code = req.params.code
+    console.log(code)
 
-    const user =  await User.update({ status: 'Active' }, { where: { confirmationCode: code } })
+    const user = await User.findOne({ where: { confirmationCode: code } })
 
-    if(!user) return res.status(404).send({ message: 'User not found' })
+    if(!user) return res.status(404).send({ message: 'Confirmation code invalid' })
+    
+    const active = await User.findOne({ where: { confirmationCode: code, status: 'Active'} })
+
+    if(active) return res.status(404).send({ message: 'Confirmation code has expired' })
+
+    await User.update({ status: 'Active' }, { where: { confirmationCode: code } })
 
     res.status(200).send({ message: 'Correo confirmado' })
 
@@ -133,5 +159,6 @@ module.exports = {
   login,
   register,
   confirmMail,
-  recoverPassword
+  recoverPassword,
+  updatedUser
 }

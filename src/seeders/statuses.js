@@ -1,5 +1,5 @@
 module.exports = {
-  up: queryInterface => queryInterface.bulkInsert('rols',[
+  up: queryInterface => queryInterface.bulkInsert('statuses',[
     {
       name: 'Pendiente',
       description: 'Pendiente de ser atendido',

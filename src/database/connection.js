@@ -7,6 +7,8 @@ const EmergencyModel = require('../models/emergencies')
 const AlertModel = require('../models/alerts')
 const ManagementAlertModel = require('../models/managementAlert')
 const StatusModel = require('../models/statuses')
+const StatusActivityModel = require('../models/statusActivity')
+const StatusActivityRolModel = require('../models/statusActivityRol')
 
 const insertEmergencies = require('./insertEmergencies')
 
@@ -25,16 +27,20 @@ const sequelize = new Sequelize(process.env.DB_DATABASE, process.env.DB_USERNAME
 
 const User = UserModel(sequelize, DataTypes);
 const Rol = RolModel(sequelize, DataTypes);
+const StatusActivity = StatusActivityModel(sequelize, DataTypes)
+const StatusActivityRol = StatusActivityRolModel(sequelize, DataTypes)
 const UserRol = UserRolModel(sequelize, DataTypes);
 const Emergency = EmergencyModel(sequelize, DataTypes);
 const Alert = AlertModel(sequelize, DataTypes);
 const ManagementAlert = ManagementAlertModel(sequelize, DataTypes);
 const Status = StatusModel(sequelize, DataTypes);
 
+StatusActivity.belongsToMany(Rol, { through: StatusActivityRol, foreignKey: 'idStatusActivity'})
+Rol.belongsToMany(StatusActivity, { through: StatusActivityRol, foreignKey: 'idRol' })
 UserRol.belongsTo(User, { foreignKey: 'idUser'});
 UserRol.belongsTo(Rol, { foreignKey: 'idRol'});
 Emergency.belongsTo(UserRol, { foreignKey: 'idUserRol'});
-Alert.belongsTo(Emergency, { foreignKeyi: 'idEmergencie'});
+Alert.belongsTo(Emergency, { foreignKey: 'idEmergency'});
 ManagementAlert.belongsTo(Alert, { foreignKey: 'idAlert'});
 ManagementAlert.belongsTo(Status, { foreignKey: 'idStatus'});
 
@@ -55,5 +61,7 @@ module.exports = {
   Alert, 
   Status, 
   ManagementAlert,
-  insertEmergencies
+  insertEmergencies,
+  StatusActivity,
+  StatusActivityRol
 }
