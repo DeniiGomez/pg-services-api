@@ -2,6 +2,7 @@ const express = require('express')
 const authController = require('../controllers/auth')
 const emergencyController = require('../controllers/emergencies')
 const alertController = require('../controllers/alerts')
+const managementController = require('../controllers/management')
 const api = express.Router()
 const auth = require('../middlewares/auth')
 
@@ -22,8 +23,13 @@ api.put('/emergencies/:idEmergency', emergencyController.updateEmergency)
 api.delete('/emergencies/:idEmergency', emergencyController.deleteEmergency)
 
 //curd alerts
+api.get('/alerts', alertController.getAlerts)
 api.post('/test-alert', alertController.testNotification)
 api.post('/alerts', alertController.createAlert)
+
+//Crud Management
+api.get('/management', managementController.getManagements)
+api.post('/management', managementController.createManagement)
 
 
 module.exports = api

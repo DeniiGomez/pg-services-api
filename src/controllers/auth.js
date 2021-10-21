@@ -36,27 +36,32 @@ const login = async (req, res) => {
 
     const errors = validationResult(req)
     const listErrors = errors.array().map(err => err.msg)
-    console.log(errors)
+    //console.log(errors)
 
     if(!errors.isEmpty()) return res.status(500).send({ errors: listErrors })
 
-    //const user =  await User.findOne({ where: { email } })
-    const user =  await UserRol.findOne({ include: [{ model: User, where : { email } }, { model: Rol }] })
-    //const statusActivity = await StatusActivity.findAll({ include: { model: Rol }})
-    //console.log(user.rol)
-    //console.log(user)
+    //const user =  await UserRol.findOne({ include: [{ model: User, where : { email } }, ] })
+    const user = await User.findOne({ 
+      where: { email }, 
+      include: {
+        model: Rol,
+        through: { attributes: [] }
+      }
+    })
+
+    //return res.status(200).send(user)
 
     if(!user) {
       return res.status(400).send({ message: 'Email or password does not match' })
     }
 
-    if(user.user.status === 'Pending') return res.status(400).send({ message: 'User required confirm email' })
+    if(user.status === 'Pending') return res.status(400).send({ message: 'User required confirm email' })
 
-    if(!bcrypt.compare(password, user.user.password)) {
+    if(!bcrypt.compare(password, user.password)) {
       return res.status(400).send({ message: 'Email or password does not match' })
     }
 
-    if(user.rol.id === 4 && user.rol.name === 'Civil') {
+    if(user.rols[0].id === 4 && user.rols[0].name === 'Civil') {
       const emergencies = await Emergency.findOne({ where: { idUserRol: user.id } })
       //console.log(emergencies)
       if(!emergencies) {
@@ -65,19 +70,19 @@ const login = async (req, res) => {
     }
 
 
-    const token = createToken(user.user)
+    const token = createToken(user)
 
     res.status(200).send({
       id: user.id,
-      avatar: `https://ui-avatars.com/api/?name=${user.user.name}+${user.user.surname}&background=random`,
-      name: user.user.name,
-      surname: user.user.surname,
-      fullName: `${user.user.name}${user.user.secondName ? " "+user.user.secondName : "" } ${user.user.surname}${user.user.secondSurname ? " "+user.user.secondSurname : ""}`,
-      email: user.user.email,
-      numberPhone: user.user.numberPhone,
+      avatar: `https://ui-avatars.com/api/?name=${user.name}+${user.surname}&background=random`,
+      name: user.name,
+      surname: user.surname,
+      fullName: `${user.name}${user.secondName ? " "+user.secondName : "" } ${user.surname}${user.secondSurname ? " "+user.secondSurname : ""}`,
+      email: user.email,
+      numberPhone: user.numberPhone,
       rol: {
-        id: user.rol.id,
-        name: user.rol.name,
+        id: user.rols[0].id,
+        name: user.rols[0].name,
       },
       token
     })
@@ -89,7 +94,6 @@ const login = async (req, res) => {
 }
 
 const register = async (req, res) => {
-
   try {
     const body = req.body
 
@@ -114,9 +118,9 @@ const register = async (req, res) => {
       const code = generateCode()
       body.confirmationCode = code
       const user =  await User.create(body)
-      await UserRol.create({ idRol: body.idRol, idUser: user.id })
       //const token = createToken(user)
       const mail = await sendMail(body.name, body.email, code)
+      await UserRol.create({ idRol: body.idRol, idUser: user.id })
       console.log(mail)
       res.status(200).send({ message: 'Usuario registrado, por favor revisa tu email para activar la cuenta' })
     }

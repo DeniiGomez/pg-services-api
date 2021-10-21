@@ -37,12 +37,21 @@ const Status = StatusModel(sequelize, DataTypes);
 
 StatusActivity.belongsToMany(Rol, { through: StatusActivityRol, foreignKey: 'idStatusActivity'})
 Rol.belongsToMany(StatusActivity, { through: StatusActivityRol, foreignKey: 'idRol' })
-UserRol.belongsTo(User, { foreignKey: 'idUser'});
-UserRol.belongsTo(Rol, { foreignKey: 'idRol'});
+Rol.belongsToMany(User, { through: UserRol,  foreignKey: 'idRol'});
+User.belongsToMany(Rol, { through: UserRol, foreignKey: 'idUser'});
+
+UserRol.belongsTo(User, { foreignKey: 'idUser'})
+UserRol.belongsTo(Rol, { foreignKey: 'idRol'})
+
 Emergency.belongsTo(UserRol, { foreignKey: 'idUserRol'});
 Alert.belongsTo(Emergency, { foreignKey: 'idEmergency'});
+Alert.belongsTo(Status, { foreignKey: 'idStatus'});
+
+UserRol.belongsToMany(Alert,{ through: ManagementAlert, foreignKey: 'idUserRol'});
+Alert.belongsToMany(UserRol, { through: ManagementAlert, foreignKey: 'idAlert'});
+
+ManagementAlert.belongsTo(UserRol, { foreignKey: 'idUserRol'});
 ManagementAlert.belongsTo(Alert, { foreignKey: 'idAlert'});
-ManagementAlert.belongsTo(Status, { foreignKey: 'idStatus'});
 
 (async () => {
   try {

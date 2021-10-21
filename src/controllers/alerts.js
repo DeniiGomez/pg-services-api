@@ -1,7 +1,7 @@
 //const admin = require('../services/firebase')
 const { sendOneNotification, sendNotifications } = require('../services/notifications')
 const {check, validationResult} = require('express-validator')
-const { Alert, Emergency, UserRol, User, StatusActivity, Rol } = require('../database/connection')
+const { Alert, Emergency, UserRol, User, StatusActivity, Rol, Status } = require('../database/connection')
 
 
 const testNotification = async(req, res) => {
@@ -16,6 +16,7 @@ const testNotification = async(req, res) => {
       notification: {
         body: "Notificacion",
         title: "App",
+        sound: "default",
       },
       android:{
         priority:"high"
@@ -33,26 +34,77 @@ const testNotification = async(req, res) => {
 }
 
 const getAlerts = async (req, res) => {
-  const id = req.query.idUser
+  try {
+    const idUser = req.query.idUser
+    const idAlert = req.query.idAlert
 
-  const alerts = await Alert.findAll({
-    include: [
-      {
-        model: Emergency,
+    if(idUser && idAlert) {
+      const alert = await Alert.findOne({
+        attributes: { exclude: ['idEmergency', 'idStatus']},
+        where: {id: idAlert},
         include: [
           {
-            model: UserRol,
-            where: { id },
-            include: { 
-              model: User,
-            }
+            model: Emergency,
+            where: {idUserRol: idUser},
+          },
+          {
+            model: Status, 
+            attributes: ['id','name'],
           }
         ]
-      }
-    ]
-  })
+      })
 
-  res.status(200).send(alerts)
+      res.status(200).send(alert ? alert : {})  
+
+    }else if (idAlert) {
+      const alert = await Alert.findOne({
+        attributes: { exclude: ['idEmergency', 'idStatus']},
+        where: {id: idAlert},
+        include: [
+          {
+            model: Emergency,
+            where: {idUserRol: idUser},
+            include: [
+              {
+                model: UserRol,
+              }
+            ]
+          },
+          {
+            model: Status, 
+            attributes: ['id','name'],
+          }
+        ]
+      })
+
+      res.status(200).send(alert ? alert : {})  
+    }else {
+      const alerts = await Alert.findAll({
+        attributes: { exclude: ['idEmergency', 'idStatus']},
+        include: [
+          {
+            model: Emergency,
+            attributes: { exclude: ['idUserRol']},
+            where: {idUserRol: idUser},
+            include: [
+              {
+                model: UserRol,
+              }
+            ]
+          },
+          {
+            model: Status, 
+            attributes: ['id','name'],
+          }
+        ]
+      })
+
+      res.status(200).send(alerts)  
+    }
+  } catch (error) {
+    res.status(500).send(error.message)
+  }
+
 }
 
 const getAlert = async (req, res) => {
@@ -102,42 +154,49 @@ const createAlert = async (req, res) => {
       return res.status(500).send({ errors: listErrors })
     } else {
 
-      const usersAvailable = await UserRol.findAll({ 
-        where: {idRol: 3},
+      const usersAvailable = await User.findAll({ 
+        attributes: ['deviceToken'],
         include: [
-          {
-            model: User,
-          },
           { 
             model: Rol,
+            where: {id: 3},
+            through: { attributes: [] },
             include: {
               model: StatusActivity,
-              where: { id: 1 }
+              where: { id: 1 },
+              through: { attributes: [] }
             }
           },
         ] 
       })
 
       if(usersAvailable.length){
-        const tokens = usersAvailable.map(item => item.user).map(x => x.deviceToken).filter(y => y !== null)
-
-        if(tokens.length){
-         
+        const tokens = usersAvailable.map(x => x.deviceToken).filter(y => y !== null)
+        
+        if(tokens.length){ 
           const emergency = await Emergency.findOne({where: { id: idEmergency }})
-          //const alert = Alert.create({ idEmergency, latitude, longitude })
-          
-          const notifications = {
-            tokens,
-            notification: {
-              title: "Alerta de emergencia",
-              body: emergency.name,
-            },
-            data: {
-              //idAlert: alert.id,
+          const alert = await Alert.create({ idEmergency, latitude, longitude, idStatus: 1 })
+            const notifications = {
+              tokens,
+              notification: {
+                title: "Alerta de emergencia",
+                body: emergency.name,
+              },
+              data: {
+                idAlert: `${alert.id}`,
+              },
+            }  
+            const notification = await sendNotifications(notifications) 
+            if(notification.failureCount > 0) {
+              const failedToken = []
+              notification.responses.forEach((res, index) => {
+                if(!res.success) failedToken.push(res.error.message)
+              })
+              res.status(500).send({ message: failedToken })
             }
-          }
-          await sendNotifications(notifications) 
-          res.status(200).send({ message: 'Alerta enviadas a la unidad de bomberos' })
+            //console.log(notification)
+            res.status(200).send({ message: 'Alerta enviada a las unidades disponibles' })
+          //return res.status(200).send(notifications)
         }else {
           return res.status(200).send({ message: 'Unidades no disponibles' })
         }
