@@ -6,7 +6,7 @@ const sendMail = async (name, email, code) => {
   //console.log(testAccount)
   //console.log(process.env.CLIENT)
 
-  const transport = await nodemailer.createTransport({
+  const transport = nodemailer.createTransport({
     service: 'Gmail',
     auth: {
       user: process.env.CLIENT,
@@ -14,18 +14,29 @@ const sendMail = async (name, email, code) => {
     }
   })
 
-  const url = `http://localhost:3030/api/v1/users/confirm/${code}`
+  //const url = `http://localhost:3030/api/v1/users/confirm/${code}`
 
   const mailOptions = {
-    from: `"Bomberos APP 🚒" <${process.env.USER}>`,
+    from: `Bomberos APP 🚒 <noreply@gmail.com>`,
+    replyTo: 'noreply@gmail.com',
     to: email,
     subject: 'Confirmación de correo',
-    text: url,
     html: `
-     <h1>Confirmación de correo</h1>
-     <h2>Hola ${name}</h2>
-     <p>Gracias por registrarte, por favor confirma tu correo dando click en el siguiente link</p>
-     <a href="${url}" target="_blank">Click aqui</a>
+      <div style="width: 100%; background-color: #eee; padding: 25px 0;>
+      <div style="max-width: 600px; margin: 0 auto;>
+      <div class="body" style="max-width: 600px; background-color: #fff; font-size: 16px; color: #333333; margin: 0 auto;">
+        <div style="border-bottom: 2px solid #eee; padding: 25px 50px; ">
+          <p style="font-size: 24px; margin: 0;">Confirmación de correo electrónico</p> 
+        </div>
+        <div style="padding: 25px 50px; width: auto; ">
+          <p style="margin: 0; margin-bottom: 15px;">Hola ${name}</p> 
+          <p style="margin: 0; margin-bottom: 15px;">Gracias por registrarte en nuestra app.</p> 
+          <p style="margin: 0; margin-bottom: 15px;">Tu código de confirmación es:</p> 
+          <div style="width: auto; border: 1px solid #dad8de; padding: 10px; font-size: 24px; text-align: center; background-color: #faf9fa;">${code}</div>
+        </div>
+      </div>
+      </div>
+      </div>
     `
   }
 
