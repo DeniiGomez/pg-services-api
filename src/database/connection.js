@@ -32,13 +32,16 @@ const StatusActivityRol = StatusActivityRolModel(sequelize, DataTypes)
 const UserRol = UserRolModel(sequelize, DataTypes);
 const Emergency = EmergencyModel(sequelize, DataTypes);
 const Alert = AlertModel(sequelize, DataTypes);
-const ManagementAlert = ManagementAlertModel(sequelize, DataTypes);
 const Status = StatusModel(sequelize, DataTypes);
+const ManagementAlert = ManagementAlertModel(sequelize, DataTypes);
 
 StatusActivity.belongsToMany(Rol, { through: StatusActivityRol, foreignKey: 'idStatusActivity'})
 Rol.belongsToMany(StatusActivity, { through: StatusActivityRol, foreignKey: 'idRol' })
 Rol.belongsToMany(User, { through: UserRol,  foreignKey: 'idRol'});
 User.belongsToMany(Rol, { through: UserRol, foreignKey: 'idUser'});
+
+Rol.hasMany(UserRol, { foreignKey: 'idRol' })
+User.hasMany(UserRol, { foreignKey: 'idUser'})
 
 UserRol.belongsTo(User, { foreignKey: 'idUser'})
 UserRol.belongsTo(Rol, { foreignKey: 'idRol'})
@@ -47,11 +50,15 @@ Emergency.belongsTo(UserRol, { foreignKey: 'idUserRol'});
 Alert.belongsTo(Emergency, { foreignKey: 'idEmergency'});
 Alert.belongsTo(Status, { foreignKey: 'idStatus'});
 
-UserRol.belongsToMany(Alert,{ through: ManagementAlert, foreignKey: 'idUserRol'});
+UserRol.belongsToMany(Alert, { through: ManagementAlert, foreignKey: 'idUserRol'});
 Alert.belongsToMany(UserRol, { through: ManagementAlert, foreignKey: 'idAlert'});
+
+UserRol.hasMany(ManagementAlert, { foreignKey: 'idUserRol'})
+Alert.hasMany(ManagementAlert, { foreignKey: 'idAlert'})
 
 ManagementAlert.belongsTo(UserRol, { foreignKey: 'idUserRol'});
 ManagementAlert.belongsTo(Alert, { foreignKey: 'idAlert'});
+//UserRol.belongsTo(ManagementAlert, { foreignKey: 'idUserRol'});
 
 (async () => {
   try {

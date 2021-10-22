@@ -2,12 +2,14 @@ const { sendOneNotification } = require('../services/notifications')
 const {check, validationResult} = require('express-validator')
 
 const { ManagementAlert, Alert, Emergency, User, UserRol, Status } = require('../database/connection')
+const { Op } = require('sequelize')
 
 const getManagements = async (req, res) => {
   try {
     const idUserRol = req.query.idUser
     const idManagement = req.query.idManagement
-    //const idAlert = req.query.idAlert
+    const idAlert = req.query.idAlert
+    const pending = req.query.pending
 
     if(idUserRol && idManagement) {
       const management = await ManagementAlert.findOne({
@@ -21,6 +23,17 @@ const getManagements = async (req, res) => {
             include: [
               {
                 model: Emergency,
+                attributes: { exclude: ['idUserRol']},
+                include: [
+                  {
+                    model: UserRol,
+                    attributes: ['id'],
+                    include: {
+                      model: User,
+                      attributes: ['id', 'name', 'surname', 'numberPhone']
+                    }
+                  }
+                ]
               },
               {
                 model: Status, 
@@ -28,15 +41,52 @@ const getManagements = async (req, res) => {
               }
             ]
           },
+          {
+            model: UserRol,
+            attributes: ['id'],
+            include: [
+              {
+                model: User,
+                attributes: ['id', 'name', 'surname', 'numberPhone']
+              }
+            ]
+          }
         ]
       })
 
       res.status(200).send(management ? management : {})  
 
-    }else if (idUserRol) {
-      const management = await ManagementAlert.findAll({
+    }else if(pending) {
+      const alerts = await Alert.findAll({
+        attributes: { exclude: ['idEmergency', 'idStatus']},
+        order: [['createdAt', 'DESC']],
+        include: [
+          {
+            model: Emergency,
+            attributes: { exclude: ['idUserRol']},
+            // include: [
+            //   {
+            //     model: UserRol,
+            //   }
+            // ]
+          },
+          {
+            model: Status, 
+            where: { 
+              id: {
+                [Op.ne]: 4
+              }
+            },
+            attributes: ['id','name'],
+          }
+        ]
+      })
+
+      res.status(200).send(alerts)  
+    }else if(idUserRol && idAlert) {
+      const management = await ManagementAlert.findOne({
         //attributes: { exclude: ['idEmergency', 'idStatus']},
-        where: { idUserRol },
+        where: { idAlert, idUserRol },
         include: [
           {
             model: Alert,
@@ -45,9 +95,61 @@ const getManagements = async (req, res) => {
             include: [
               {
                 model: Emergency,
+                attributes: { exclude: ['idUserRol']},
+                include: [
+                  {
+                    model: UserRol,
+                    attributes: ['id'],
+                    include: {
+                      model: User,
+                      attributes: ['id', 'name', 'surname', 'numberPhone']
+                    }
+                  }
+                ]
               },
               {
                 model: Status, 
+                attributes: ['id','name'],
+              }
+            ]
+          },
+          {
+            model: UserRol,
+            attributes: ['id'],
+            include: [
+              {
+                model: User,
+                attributes: ['id', 'name', 'surname', 'numberPhone']
+              }
+            ]
+          }
+        ]
+      })
+
+      let alert = JSON.stringify(management.alert)
+      alert = JSON.parse(alert)
+      //alert.user = management.users_rol.user
+      
+      //alert.alert.user = management.users_rol.user
+
+      res.status(200).send(management ? alert : {})
+    }else if (idUserRol) {
+      const management = await ManagementAlert.findAll({
+        //attributes: { exclude: ['idEmergency', 'idStatus']},
+        where: { idUserRol },
+        order: [['createdAt', 'DESC']],
+        include: [
+          {
+            model: Alert,
+            //attributes: { exclude: ['idUserRol']},
+            where: {idStatus: 4},
+            include: [
+              {
+                model: Emergency,
+              },
+              {
+                model: Status, 
+                //where: { id: 4 },
                 attributes: ['id','name'],
               }
             ]

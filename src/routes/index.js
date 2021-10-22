@@ -26,6 +26,7 @@ api.delete('/emergencies/:idEmergency', emergencyController.deleteEmergency)
 api.get('/alerts', alertController.getAlerts)
 api.post('/test-alert', alertController.testNotification)
 api.post('/alerts', alertController.createAlert)
+api.put('/alerts/:idAlert', alertController.updatedAlert)
 
 //Crud Management
 api.get('/management', managementController.getManagements)

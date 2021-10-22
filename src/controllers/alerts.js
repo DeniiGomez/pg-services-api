@@ -1,7 +1,8 @@
 //const admin = require('../services/firebase')
 const { sendOneNotification, sendNotifications } = require('../services/notifications')
 const {check, validationResult} = require('express-validator')
-const { Alert, Emergency, UserRol, User, StatusActivity, Rol, Status } = require('../database/connection')
+const { Alert, Emergency, UserRol, User, StatusActivity, Rol, Status, ManagementAlert } = require('../database/connection')
+const { Op } = require('sequelize')
 
 
 const testNotification = async(req, res) => {
@@ -37,6 +38,7 @@ const getAlerts = async (req, res) => {
   try {
     const idUser = req.query.idUser
     const idAlert = req.query.idAlert
+    const finaly = req.query.finaly
 
     if(idUser && idAlert) {
       const alert = await Alert.findOne({
@@ -46,17 +48,42 @@ const getAlerts = async (req, res) => {
           {
             model: Emergency,
             where: {idUserRol: idUser},
+            attributes: ['id', 'name', 'description'],
+            include: [
+              {
+                model: UserRol,
+                attributes: ['id'],
+                include: {
+                  model: User,
+                  attributes: ['id', 'name', 'surname', 'numberPhone']
+                }
+              }
+            ]
           },
           {
             model: Status, 
             attributes: ['id','name'],
+          },
+          {
+            model: ManagementAlert,
+            attributes: ['id', 'latitude', 'longitude'],
+            include: [
+              {
+                model: UserRol,
+                attributes: ['id'],
+                include: {
+                  model: User,
+                  attributes: ['id', 'name', 'surname', 'numberPhone']
+                }
+              }
+            ]
           }
         ]
       })
 
       res.status(200).send(alert ? alert : {})  
 
-    }else if (idAlert) {
+    }else if (!idUser && idAlert) {
       const alert = await Alert.findOne({
         attributes: { exclude: ['idEmergency', 'idStatus']},
         where: {id: idAlert},
@@ -78,9 +105,10 @@ const getAlerts = async (req, res) => {
       })
 
       res.status(200).send(alert ? alert : {})  
-    }else {
+    }else if(idUser && finaly) {
       const alerts = await Alert.findAll({
         attributes: { exclude: ['idEmergency', 'idStatus']},
+        order: [['createdAt', 'DESC']],
         include: [
           {
             model: Emergency,
@@ -94,13 +122,79 @@ const getAlerts = async (req, res) => {
           },
           {
             model: Status, 
+            where: { 
+              id: {
+                [Op.ne]: 4
+              }
+            },
             attributes: ['id','name'],
+          },
+          {
+            model: ManagementAlert,
+            attributes: ['id', 'latitude', 'longitude'],
+          }
+        ]
+      })
+      res.status(200).send(alerts)  
+
+    }else {
+      const alerts = await Alert.findAll({
+        attributes: { exclude: ['idEmergency', 'idStatus']},
+        order: [['createdAt', 'DESC']],
+        include: [
+          {
+            model: Emergency,
+            attributes: { exclude: ['idUserRol']},
+            where: {idUserRol: idUser},
+            include: [
+              {
+                model: UserRol,
+              }
+            ]
+          },
+          {
+            model: Status, 
+            where: { id: 4 },
+            attributes: ['id','name'],
+          },
+          {
+            model: ManagementAlert,
+            attributes: ['id', 'latitude', 'longitude'],
           }
         ]
       })
 
       res.status(200).send(alerts)  
     }
+
+    const alerts = await Alert.findAll()
+
+    res.status(200).send(alerts)
+    //res.status(200).send(alerts)  
+    // else {
+    //   const alerts = await Alert.findAll({
+    //     attributes: { exclude: ['idEmergency', 'idStatus']},
+    //     include: [
+    //       {
+    //         model: Emergency,
+    //         attributes: { exclude: ['idUserRol']},
+    //         // include: [
+    //         //   {
+    //         //     model: UserRol,
+    //         //   }
+    //         // ]
+    //       },
+    //       {
+    //         model: Status, 
+    //         //where: { id: 1 },
+    //         attributes: ['id','name'],
+    //       }
+    //     ]
+    //   })
+
+    //   res.status(200).send(alerts)  
+
+    // }
   } catch (error) {
     res.status(500).send(error.message)
   }
@@ -125,7 +219,7 @@ const getAlert = async (req, res) => {
             }
           }
         ]
-      }
+      },
     ]
   })
 
@@ -221,9 +315,23 @@ const createAlert = async (req, res) => {
   }
 }
 
+const updatedAlert = async(req, res) => {
+  try {
+    const id = req.params.idAlert
+    //const { name, description } = req.body
+    await Alert.update({ idStatus: 4 }, { where: { id }})
+    res.status(200).send({ message: 'Alerta editada con exito' })
+  } catch(err) {
+    console.log(err)
+    res.status(500).send({ error: err.message })
+  }
+
+}
+
 module.exports = {
   getAlerts,
   getAlert,
   testNotification,
-  createAlert
+  createAlert,
+  updatedAlert
 }
