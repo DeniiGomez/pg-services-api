@@ -269,7 +269,8 @@ const createAlert = async (req, res) => {
         
         if(tokens.length){ 
           const emergency = await Emergency.findOne({where: { id: idEmergency }})
-          const alert = await Alert.create({ idEmergency, latitude, longitude, idStatus: 1 })
+          console.log(emergency)
+          //const alert = await Alert.create({ idEmergency, latitude, longitude, idStatus: 1 })
             const notifications = {
               tokens,
               notification: {
@@ -277,7 +278,8 @@ const createAlert = async (req, res) => {
                 body: emergency.name,
               },
               data: {
-                idAlert: `${alert.id}`,
+                title: 'Alerta',
+                body: emergency.name
               },
             }  
             const notification = await sendNotifications(notifications) 
@@ -289,6 +291,7 @@ const createAlert = async (req, res) => {
               res.status(500).send({ message: failedToken })
             }
             //console.log(notification)
+            await Alert.create({ idEmergency, latitude, longitude, idStatus: 1 })
             res.status(200).send({ message: 'Alerta enviada a las unidades disponibles' })
           //return res.status(200).send(notifications)
         }else {
