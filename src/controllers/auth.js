@@ -49,6 +49,8 @@ const login = async (req, res) => {
       }
     })
 
+    console.log(user.password, password)
+
     //return res.status(200).send(user)
 
     if(!user) {
@@ -56,18 +58,20 @@ const login = async (req, res) => {
     }
 
     if(user.status === 'Pending') return res.status(400).send({ message: 'User required confirm email' })
+  
+    const compare = await bcrypt.compare(password, user.password)
 
-    if(!bcrypt.compare(password, user.password)) {
+    if(!compare) {
       return res.status(400).send({ message: 'Email or password does not match' })
     }
 
-    if(user.rols[0].id === 4 && user.rols[0].name === 'Civil') {
-      const emergencies = await Emergency.findOne({ where: { idUserRol: user.id } })
-      //console.log(emergencies)
-      if(!emergencies) {
-        await insertEmergencies(Emergency, user.id)
-      }
-    }
+    //if(user.rols[0].id === 4 && user.rols[0].name === 'Civil') {
+      //const emergencies = await Emergency.findOne({ where: { idUserRol: user.id } })
+      ////console.log(emergencies)
+      //if(!emergencies) {
+        //await insertEmergencies(Emergency, user.id)
+      //}
+    //}
 
 
     const token = createToken(user)
