@@ -62,7 +62,7 @@ ManagementAlert.belongsTo(Alert, { foreignKey: 'idAlert'});
 
 (async () => {
   try {
-    await sequelize.sync({ force: false }) 
+    await sequelize.sync({ force: true }) 
     console.log('Connection successfull to DB')
   } catch (err) {
     console.log(err.message)
