@@ -49,7 +49,7 @@ const login = async (req, res) => {
       }
     })
 
-    console.log(user.password, password)
+    //console.log(user.password, password)
 
     //return res.status(200).send(user)
 
